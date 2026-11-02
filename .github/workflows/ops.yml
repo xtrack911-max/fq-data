@@ -1,0 +1,60 @@
+name: ops
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "probe first, then unpack/test/backfill/collect"
+        type: choice
+        options: [probe, unpack, test, backfill, collect]
+        default: probe
+permissions:
+  contents: write
+concurrency:
+  group: ops-${{ github.event.inputs.action == 'probe' && 'probe' || github.event.inputs.action == 'test' && 'test' || 'data' }}
+  cancel-in-progress: false
+env:
+  ACTION: ${{ github.event.inputs.action || 'collect' }}
+  GH_TOKEN: ${{ github.token }}
+  HC_PING_URL: ${{ secrets.HC_PING_URL }}
+  NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+jobs:
+  run:
+    if: github.event_name != 'schedule' || vars.COLLECT_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - name: unpack
+        if: env.ACTION == 'unpack'
+        run: |
+          unzip -oq project.zip
+          rm -f project.zip
+          git config user.name ops-bot
+          git config user.email ops-bot@users.noreply.github.com
+          git add -A
+          git commit -m "unpack project" || echo "nothing to commit"
+          git push
+      - uses: actions/setup-python@v5
+        if: env.ACTION != 'unpack'
+        with:
+          python-version: "3.12"
+      - name: install
+        if: env.ACTION != 'unpack'
+        run: pip install -r requirements.txt
+      - name: probe
+        if: env.ACTION == 'probe'
+        run: python probe.py --storage
+      - name: test
+        if: env.ACTION == 'test'
+        run: python -m pytest -q
+      - name: backfill
+        if: env.ACTION == 'backfill'
+        run: python backfill.py
+      - name: collect
+        if: env.ACTION == 'collect'
+        run: bash scripts/collect.sh
+      - name: alert on failure
+        if: failure() && env.NTFY_TOPIC != ''
+        run: curl -fsS -m 15 -d "ops ${ACTION} FAILED ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" "https://ntfy.sh/${NTFY_TOPIC}" || true
