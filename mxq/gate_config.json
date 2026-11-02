@@ -1,0 +1,8 @@
+{
+  "symbols": ["BTCUSDT", "ETHUSDT"],
+  "max_status_age_min": 45,
+  "max_age_min": {"klines_1m": 45, "mark_1m": 45, "funding": 600, "metrics": 75},
+  "recent_window_min": 240,
+  "recent_missing_allowed": 0,
+  "max_consecutive_failures": 2
+}
