@@ -145,3 +145,18 @@ def run_backfill(w, syms=("BTCUSDT",), start=(2024, 1)):
     import backfill
     backfill.run(w.remote, w.wd, symbols=list(syms), start=start, metrics_start=(2024, 1),
                  now=w.NOW, workers=2, log=lambda *a: None)
+
+
+METRICS_HDR = ("create_time,symbol,sum_open_interest,sum_open_interest_value,count_toptrader_long_short_ratio,"
+               "sum_toptrader_long_short_ratio,count_long_short_ratio,sum_taker_long_short_vol_ratio\n")
+
+
+def metrics_csv(start_ms, n, sym="BTCUSDT"):
+    return METRICS_HDR + "".join(
+        f"{datetime.fromtimestamp((start_ms + i * 300_000) / 1000, timezone.utc):%Y-%m-%d %H:%M:%S},"
+        f"{sym},1000,50000000,1.1,1.2,1.3,0.9\n" for i in range(n))
+
+
+def add_daily(w, kind, day, start, n=1440, sym="BTCUSDT", bad=False):
+    from mxq import archive
+    w.arch.add(archive.url(kind, sym, day, daily=True), kl_csv(kls(start, n)), bad=bad)

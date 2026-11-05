@@ -1,4 +1,4 @@
-const { evaluateGate } = require("../dashboard/gate.js");
+const { evaluateGate } = require("../site/crypto/gate.js");
 const vec = JSON.parse(require("fs").readFileSync(process.argv[2], "utf8"));
 let bad = 0;
 for (const c of vec) {

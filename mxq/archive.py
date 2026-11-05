@@ -8,9 +8,10 @@ class ChecksumError(RuntimeError):
     pass
 
 
-def url(kind, sym, period, itv="1m"):
+def url(kind, sym, period, itv="1m", daily=False):
     if kind in ("klines", "markPriceKlines"):
-        return f"{ARCHIVE}/monthly/{kind}/{sym}/{itv}/{sym}-{itv}-{period}.zip"
+        scope = "daily" if daily else "monthly"
+        return f"{ARCHIVE}/{scope}/{kind}/{sym}/{itv}/{sym}-{itv}-{period}.zip"
     if kind == "fundingRate":
         return f"{ARCHIVE}/monthly/fundingRate/{sym}/{sym}-fundingRate-{period}.zip"
     if kind == "metrics":                      # period = YYYY-MM-DD (daily files)

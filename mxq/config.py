@@ -12,9 +12,16 @@ FAPI = "https://fapi.binance.com"
 ARCHIVE = "https://data.binance.vision/data/futures/um"
 
 
-def gate_config():
-    with open(os.path.join(HERE, "gate_config.json")) as f:
+def gate_config(profile=None):
+    """'live' = strict 45-min freshness; 'delayed' = daily-archive research mode (no live signals)."""
+    profile = profile or os.environ.get("GATE_PROFILE", "live")
+    name = "gate_config.json" if profile == "live" else f"gate_{profile}.json"
+    with open(os.path.join(HERE, name)) as f:
         return json.load(f)
+
+
+def day_key(ms):
+    return datetime.fromtimestamp(ms / 1000, timezone.utc).strftime("%Y-%m-%d")
 
 
 def month_key(ms):

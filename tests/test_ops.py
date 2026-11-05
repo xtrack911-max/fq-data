@@ -90,10 +90,11 @@ def test_build_live_cli_runs_and_writes_alert_for_stale_data(world, tmp_path):
     r = subprocess.run([sys.executable, os.path.join(ROOT, "build_live.py"), "--out", "live_out"],
                        cwd=run_dir, env=env, capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
-    status = json.load(open(run_dir / "live_out" / "status.json"))
+    status = json.load(open(run_dir / "live_out" / "crypto" / "data" / "status.json"))
     assert status["gate"]["signals_allowed"] is False                   # data from 2024 is stale "now"
     assert "SUSPENDED" in open(run_dir / "alert.txt").read()
-    assert (run_dir / "live_out" / "config.json").exists()
+    assert (run_dir / "live_out" / "crypto" / "data" / "config.json").exists() and (run_dir / "publish.flag").exists()
+    assert (run_dir / "live_out" / "crypto" / "index.html").exists() and (run_dir / "live_out" / "index.html").exists()
 
 
 def test_workflow_and_scripts_are_well_formed():

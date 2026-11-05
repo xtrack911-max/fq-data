@@ -169,7 +169,7 @@ def ready(world, client=None):
 
 
 def cfg1():
-    c = gate_config()
+    c = gate_config("live")
     c["symbols"] = [BTC]
     return c
 
@@ -177,12 +177,12 @@ def cfg1():
 def test_build_live_outputs_and_gate_open_when_fresh(world):
     ready(world)
     out = str(world.tmp / "live")
-    g, alert = build_live.build(world.remote, world.wd, out, world.NOW, cfg1(), [BTC])
+    g, alert, _ = build_live.build(world.remote, world.wd, out, world.NOW, cfg1(), [BTC])
     assert g == {"signals_allowed": True, "reasons": []} and alert is None
-    status = json.load(open(f"{out}/status.json"))
+    status = json.load(open(f"{out}/crypto/data/status.json"))
     assert status["schema"] == 1 and len(status["snapshot_id"]) == 16
     assert set(status["series"]) == {f"{d}:{BTC}" for d in ("klines_1m", "mark_1m", "funding", "metrics")}
-    chart = json.load(open(f"{out}/chart_{BTC}.json"))
+    chart = json.load(open(f"{out}/crypto/data/chart_{BTC}.json"))
     assert set(chart["tf"]) == {"1m", "5m", "15m", "1h", "4h", "1d"}
     last1m = chart["tf"]["1m"][-1]
     assert last1m[0] == ms(2024, 2, 1, 0, 9) and len(last1m) == 6
@@ -193,7 +193,7 @@ def test_build_live_outputs_and_gate_open_when_fresh(world):
 def test_gate_closes_on_gap_stale_data_and_failures(world):
     ready(world, FakeClient(world.NOW, skip={ms(2024, 2, 1, 0, 3)}))      # exchange dropped one minute
     out = str(world.tmp / "live")
-    g, _ = build_live.build(world.remote, world.wd, out, world.NOW, cfg1(), [BTC])
+    g, _, _ = build_live.build(world.remote, world.wd, out, world.NOW, cfg1(), [BTC])
     assert not g["signals_allowed"] and f"klines_1m:{BTC} gaps: 1" in g["reasons"] and f"mark_1m:{BTC} gaps: 1" in g["reasons"]
 
 
@@ -201,7 +201,7 @@ def test_gate_closes_when_collector_goes_silent(world):
     ready(world)
     out = str(world.tmp / "live")
     assert build_live.build(world.remote, world.wd, out, world.NOW, cfg1(), [BTC])[0]["signals_allowed"]
-    g, _ = build_live.build(world.remote, world.wd, out, world.NOW + 2 * 3600_000, cfg1(), [BTC])
+    g, _, _ = build_live.build(world.remote, world.wd, out, world.NOW + 2 * 3600_000, cfg1(), [BTC])
     assert not g["signals_allowed"] and f"klines_1m:{BTC} stale" in g["reasons"]
 
 
@@ -216,13 +216,13 @@ def test_alert_dedupe_and_recovery(world):
     # data becomes fresh again -> one recovery message
     collect.collect(world.remote, world.wd, FakeClient(world.NOW + 2 * 3600_000 + 7 * 3600_000), symbols=[BTC], log=lambda *a: None)
     fresh = world.NOW + 9 * 3600_000
-    g, a4 = build_live.build(world.remote, world.wd, out, fresh, cfg1(), [BTC])
+    g, a4, _ = build_live.build(world.remote, world.wd, out, fresh, cfg1(), [BTC])
     assert g["signals_allowed"] and a4 and "RESUMED" in a4
 
 
 def test_status_gate_matches_independent_evaluation(world):
     ready(world)
     out = str(world.tmp / "live")
-    g, _ = build_live.build(world.remote, world.wd, out, world.NOW, cfg1(), [BTC])
-    status = json.load(open(f"{out}/status.json"))
+    g, _, _ = build_live.build(world.remote, world.wd, out, world.NOW, cfg1(), [BTC])
+    status = json.load(open(f"{out}/crypto/data/status.json"))
     assert gate.evaluate(status, cfg1(), world.NOW) == g
