@@ -1,0 +1,18 @@
+{
+ "profile": "delayed",
+ "live": false,
+ "symbols": [
+  "BTCUSDT",
+  "ETHUSDT"
+ ],
+ "max_status_age_min": 1560,
+ "max_age_min": {
+  "klines_1m": 4320,
+  "mark_1m": 4320,
+  "funding": 64800,
+  "metrics": 4320
+ },
+ "recent_window_min": 240,
+ "recent_missing_allowed": 0,
+ "max_consecutive_failures": 2
+}
